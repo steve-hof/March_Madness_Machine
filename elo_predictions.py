@@ -54,7 +54,8 @@ def main():
     reg_season = pd.read_csv("training_data/DataFiles/RegularSeasonCompactResults.csv")
     teams_df = pd.read_csv('training_data/DataFiles/Teams.csv')
     team_ids = teams_df[teams_df['LastD1Season'] >= season]['TeamID'].tolist()
-    seeds = pd.read_csv('training_data/DataFiles/NCAATourneySeeds.csv')
+    seeds_df = pd.read_csv('training_data/DataFiles/NCAATourneySeeds.csv')
+    conf_df = pd.read_csv('training_data/DataFiles/TeamConferences.csv')
     # tourn_compact_df = pd.read_csv('training_data/DataFiles/NCAATourneyCompactResults.csv')
 
     #######################################
@@ -120,16 +121,25 @@ def main():
         else:
             final_elo_dict[id] = df.loc['l_elo']
 
-    elo_df = pd.DataFrame(list(final_elo_dict.items()), columns=['TeamID', 'Ending_Elo'])
-    elo_df = add_team_names(teams_df, elo_df)
-    reg_season_standings = elo_df.sort_values(['Ending_Elo'], ascending=False)
-
-
-    rate = dukewinner
+    final_df = pd.DataFrame(list(final_elo_dict.items()), columns=['TeamID', 'Ending_Elo'])
+    final_df = add_team_names(teams_df, final_df)
+    # reg_season_standings = final_df.sort_values(['Ending_Elo'], ascending=False)
 
     #########################################
     # DETERMINE IF PART OF POWER CONFERENCE #
     #########################################
 
+    power_conf = ['acc', 'big_twelve', 'big_ten', 'pac_twelve', 'sec', 'big_east']
+    conf_df = conf_df[conf_df['Season'] == season]
+    conf_df['pow_bool'] = np.where(conf_df['ConfAbbrev'].isin(power_conf), 1, 0)
+
+    team_li = conf_df['TeamID'].tolist()
+    bool_li = conf_df['pow_bool'].tolist()
+    pow_dict = dict(zip(team_li, bool_li))
+    temp = [k for k, v in pow_dict.items() if v == 1]
+
+    final_df['pow_bool'] = np.where(final_df['TeamID'].isin(temp), 1, 0)
+
+    temp2 = temp
 if __name__ == '__main__':
     main()
