@@ -160,7 +160,6 @@ def main():
     reg_season_detail = reg_season_detail[reg_season_detail['Season'] == season]
 
     # Reduce data to advanced stats for particular season
-    tourney_adv_stats = create_adv_stats(tourney_detail)
     reg_adv_stats = create_adv_stats(reg_season_detail)
 
 
