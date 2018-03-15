@@ -4,7 +4,6 @@ from sklearn import preprocessing
 K = 20.
 HOME_ADVANTAGE = 100.
 ELO_WIDTH = 400
-season = 2015
 
 
 ####################################################
@@ -29,7 +28,7 @@ def elo_update(w_elo, l_elo, margin):
 ################################
 # POWER CONFERENCE FUNCTION(S) #
 ################################
-def determine_power(curr_df):
+def determine_power(curr_df, season):
     conf_df = pd.read_csv('training_data/DataFiles/TeamConferences.csv')
     power_conf = ['acc', 'big_twelve', 'big_ten', 'pac_twelve', 'sec', 'big_east']
     conf_df = conf_df[conf_df['Season'] == season]
@@ -231,6 +230,9 @@ def get_ranking(df, season):
 
 
 def main():
+    seasons = [2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2014, 2015, 2016, 2018]
+    season = 2013
+    # for season in seasons:
     reg_season = pd.read_csv("training_data/DataFiles/RegularSeasonCompactResults.csv")
     teams_df = pd.read_csv('training_data/DataFiles/Teams.csv')
     team_ids = teams_df[teams_df['LastD1Season'] >= season]['TeamID'].tolist()
@@ -242,8 +244,8 @@ def main():
     # CALCULATE AND RETURN ADVANCED STATS #
     #######################################
     reg_detail_df = reg_detail_df[reg_detail_df['Season'] == season]
-    reg_adv_stats = create_adv_stats(reg_detail_df)
-    final_adv_stats = get_adv_stats(reg_adv_stats, seeds_df, season)
+    # reg_adv_stats = create_adv_stats(reg_detail_df)
+    # final_adv_stats = get_adv_stats(reg_adv_stats, seeds_df, season)
 
     #######################################
     # CALCULATE FINAL REGULAR SEASON ELOs #
@@ -295,47 +297,54 @@ def main():
         reg_season.loc[i, 'w_elo'] = elo_dict[w]
         reg_season.loc[i, 'l_elo'] = elo_dict[l]
 
-    final_elo_dict = {}
-    team_ids = teams_df[teams_df['LastD1Season'] >= season]['TeamID'].tolist()
-    for id in team_ids:
-        df = reg_season
-        df = df[(df['WTeamID'] == id) | (df['LTeamID'] == id)]
-        df = df.loc[df['DayNum'].idxmax()]
-        w_mask = df.WTeamID == id
-        # l_mask = df.LTeamID == id
-        if w_mask:
-            final_elo_dict[id] = df.loc['w_elo']
-        else:
-            final_elo_dict[id] = df.loc['l_elo']
+        final_elo_dict = {}
+        less_teams_df = teams_df[(teams_df['LastD1Season'] >= season) & (teams_df['FirstD1Season'] <= season)]['TeamID']
+        team_ids = less_teams_df.tolist()
+        for id in team_ids:
+            df = reg_season
+            df = df[(df['WTeamID'] == id) | (df['LTeamID'] == id)]
+            if df['WScore'].sum() == 0:
+                final_elo_dict[id] = 0
+            else:
+                df = df.loc[df['DayNum'].idxmax()]
+                w_mask = df.WTeamID == id
+                # l_mask = df.LTeamID == id
+                if w_mask:
+                    final_elo_dict[id] = df.loc['w_elo']
+                else:
+                    final_elo_dict[id] = df.loc['l_elo']
+                # print(f"{str(id)} is finished")
 
-    final_df = pd.DataFrame(list(final_elo_dict.items()), columns=['TeamID', 'Ending_Elo'])
-    final_df = add_team_names(teams_df, final_df)
+        final_df = pd.DataFrame(list(final_elo_dict.items()), columns=['TeamID', 'Ending_Elo'])
+        final_df = add_team_names(teams_df, final_df)
+
+        final_df.to_csv('March-Madness-2018-master/Data/RegSeasonStats/EloStats_' + str(season) + '.csv')
+        print(f"Season {str(season)} is finished")
     # reg_season_standings = final_df.sort_values(['Ending_Elo'], ascending=False)
 
-    # Add power conference
-    final_df = determine_power(final_df)
+    # # Add power conference
+    # final_df = determine_power(final_df, season)
+    #
+    # # Clean NaN before adv stats computations
+    # final_df = final_df[np.isfinite(final_df['Ending_Elo'])]
+    # # Only teams in tourney
+    # final_df = only_teams_in_tourney(final_df, season, seeds_df)
+    #
+    # # Combine dataframes
+    # reg_season_final_df = pd.merge(final_df, final_adv_stats, how='left', on='TeamID')
+    # reg_season_final_df.insert(loc=1, column='Season', value=season)
+    # reg_season_final_df.to_csv('input_data')
+    # # Normalize data
+    # normalized_df = normalize_dataframe(reg_season_final_df, starting_col=4)
+    # scaled_df = scale_dataframe(reg_season_final_df, starting_col=4)
+    #
+    # ###############
+    # # PREDICTIONS #
+    # ###############
+    # scaled_ranking = get_ranking(scaled_df, season)
+    # normed_ranking = get_ranking(normalized_df, season)
 
-    # Clean NaN before adv stats computations
-    final_df = final_df[np.isfinite(final_df['Ending_Elo'])]
-    # Only teams in tourney
-    final_df = only_teams_in_tourney(final_df, season, seeds_df)
 
-    # Combine dataframes
-    reg_season_final_df = pd.merge(final_df, final_adv_stats, how='left', on='TeamID')
-    reg_season_final_df.insert(loc=1, column='Season', value=season)
-    reg_season_final_df.to_csv('input_data')
-    # Normalize data
-    normalized_df = normalize_dataframe(reg_season_final_df, starting_col=4)
-    scaled_df = scale_dataframe(reg_season_final_df, starting_col=4)
-
-    ###############
-    # PREDICTIONS #
-    ###############
-    scaled_ranking = get_ranking(scaled_df, season)
-    normed_ranking = get_ranking(normalized_df, season)
-
-
-    foo = 12
 
 
 if __name__ == '__main__':
