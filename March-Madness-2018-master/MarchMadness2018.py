@@ -35,23 +35,25 @@ from sklearn.model_selection import GridSearchCV
 from datetime import datetime
 import random
 
-learning_rate = 0.01
-n_estimators = 400
-max_depth = 4
+learning_rate = 0.1
+n_estimators = 10
+max_depth = 5
 ############################## LOAD TRAINING SET ##############################
 
 if os.path.exists("Data/test_PrecomputedMatrices/xTrain.npy") and os.path.exists("Data/test_PrecomputedMatrices/yTrain.npy"):
     xTrain = np.load("Data/test_PrecomputedMatrices/xTrain.npy")
     yTrain = np.load("Data/test_PrecomputedMatrices/yTrain.npy")
-    xTrain = xTrain[:, :-2]
+    print(f"xTrain shape = {xTrain.shape}")
     temp = np.column_stack([xTrain, yTrain])
     temp = temp[~np.isnan(temp).any(axis=1)]
     yTrain = temp[:, -1:]
     xTrain = temp[:, :-1]
     yTrain = np.ravel(yTrain)
-    print(f"pre-normalized xTrain: {xTrain}")
-    preprocessing.normalize(xTrain, norm='l2', axis=0)
-    print(f"normalized xTrain: {xTrain}")
+    pow_bool = xTrain[:, -1:]
+    xTrain = xTrain[:, :-1]
+    xTrain = preprocessing.normalize(xTrain, norm='l2', axis=0)
+    # xTrain = np.column_stack([xTrain, pow_bool])
+    print(f"normalized xTrain: {xTrain} with shape {xTrain.shape}")
 else:
     print('We need a training set! Run DataPreprocessing.py')
     sys.exit()
@@ -69,14 +71,14 @@ model = GradientBoostingRegressor(learning_rate=learning_rate, n_estimators=n_es
 # categories = ['Wins', 'PPG', 'PPGA', 'PowerConf', '3PG', 'APG', 'TOP', 'Conference Champ', 'Tourney Conference Champ',
 #               'Seed', 'SOS', 'SRS', 'RPG', 'SPG', 'Tourney Appearances', 'National Championships', 'Location']
 
-categories = ['TeamID', 'OffRtg', 'DefRtg', 'NetRtg', 'AstR', 'TOR', 'TSP', 'eFGP',
-               'FTAR', 'ORP', 'DRP', 'RP', 'PIE', 'Ending_Elo', 'PowerConf']
+categories = ['OffRtg', 'DefRtg', 'NetRtg', 'AstR', 'TOR', 'TSP', 'eFGP',
+               'FTAR', 'ORP', 'DRP', 'RP', 'PIE', 'Ending_Elo']
 accuracy = []
-numTrials = 2
+numTrials = 1
 
 for i in range(numTrials):
     X_train, X_test, Y_train, Y_test = train_test_split(xTrain, yTrain)
-    # print(f"Xshape = {X_train.shape}, YShape = {Y_train.shape}")
+    print(f"Xshape = {X_train.shape}, YShape = {Y_train.shape}")
     startTime = datetime.now()  # For some timing stuff
     results = model.fit(X_train, Y_train)
     preds = model.predict(X_test)
@@ -95,11 +97,13 @@ if numTrials != 0:
 
 def predictGame(team_1_vector, team_2_vector, home, modelUsed):
     diff = [a - b for a, b in zip(team_1_vector, team_2_vector)]
-    diff.append(home)
+    # print(f"diff: {diff}")
+    # diff.append(home)
+    # print(f"diff after append: {diff}")
     # Depending on the model you use, you will either need to return model.predict_proba or model.predict
     # predict_proba = Linear Reg, Linear SVC
     # predict = Gradient Boosted, Ridge, HuberRegressor
-
+    filler = diff
     # return modelUsed.predict_proba([diff])[0][1]
     return modelUsed.predict([diff])[0]
 
@@ -111,6 +115,7 @@ def loadTeamVectors(years):
     for year in years:
         curVectors = np.load("Data/test_PrecomputedMatrices/TeamVectors/" + str(year) + "TeamVectors.npy",
                              encoding='latin1').item()
+        # curVectors = curVectors[:, :-1]
         listDictionaries.append(curVectors)
     return listDictionaries
 
@@ -171,6 +176,11 @@ def randomWinner(team1, team2, modelUsed):
     teamVectors = loadTeamVectors(year)[0]
     team1Vector = teamVectors[int(teams_pd[teams_pd['TeamName'] == team1].values[0][0])]
     team2Vector = teamVectors[int(teams_pd[teams_pd['TeamName'] == team2].values[0][0])]
+    # Normalize
+    team1Vector = preprocessing.normalize(team1Vector, norm='l2', axis=0)
+    team2Vector = preprocessing.normalize(team2Vector, norm='l2', axis=0)
+
+
     prediction = predictGame(team1Vector, team2Vector, 0, modelUsed)
     for i in range(10):
         if (prediction > random.random()):
@@ -183,7 +193,9 @@ def findWinner(team1, team2, modelUsed):
     year = [2018]
     teamVectors = loadTeamVectors(year)[0]
     team1Vector = teamVectors[int(teams_pd[teams_pd['TeamName'] == team1].values[0][0])]
+    team1Vector = team1Vector[:-1]
     team2Vector = teamVectors[int(teams_pd[teams_pd['TeamName'] == team2].values[0][0])]
+    team2Vector = team2Vector[:-1]
     prediction = predictGame(team1Vector, team2Vector, 0, modelUsed)
     if (prediction < 0.5):
         print("Probability that {0} wins: {1}".format(team2, 1 - prediction))
@@ -205,7 +217,7 @@ findWinner('Miami FL', 'Loyola-Chicago', trainedModel)
 findWinner('Tennessee', 'Wright St', trainedModel)
 findWinner('Nevada', 'Texas', trainedModel)
 findWinner('Cincinnati', 'Georgia St', trainedModel)
-findWinner('Xavier', 'Gongzaga', trainedModel)
+findWinner('Xavier', 'Gonzaga', trainedModel)
 findWinner('Duke', 'Michigan St', trainedModel)
 
 x = 10
