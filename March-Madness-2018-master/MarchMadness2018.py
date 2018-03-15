@@ -36,7 +36,7 @@ from datetime import datetime
 import random
 
 learning_rate = 0.1
-n_estimators = 10
+n_estimators = 72
 max_depth = 5
 ############################## LOAD TRAINING SET ##############################
 
@@ -51,8 +51,8 @@ if os.path.exists("Data/test_PrecomputedMatrices/xTrain.npy") and os.path.exists
     yTrain = np.ravel(yTrain)
     pow_bool = xTrain[:, -1:]
     xTrain = xTrain[:, :-1]
-    xTrain = preprocessing.normalize(xTrain, norm='l2', axis=0)
-    # xTrain = np.column_stack([xTrain, pow_bool])
+    # xTrain = preprocessing.normalize(xTrain, norm='l2', axis=0)
+    xTrain = np.column_stack([xTrain, pow_bool])
     print(f"normalized xTrain: {xTrain} with shape {xTrain.shape}")
 else:
     print('We need a training set! Run DataPreprocessing.py')
@@ -74,7 +74,7 @@ model = GradientBoostingRegressor(learning_rate=learning_rate, n_estimators=n_es
 categories = ['OffRtg', 'DefRtg', 'NetRtg', 'AstR', 'TOR', 'TSP', 'eFGP',
                'FTAR', 'ORP', 'DRP', 'RP', 'PIE', 'Ending_Elo']
 accuracy = []
-numTrials = 1
+numTrials = 0
 
 for i in range(numTrials):
     X_train, X_test, Y_train, Y_test = train_test_split(xTrain, yTrain)
@@ -98,7 +98,7 @@ if numTrials != 0:
 def predictGame(team_1_vector, team_2_vector, home, modelUsed):
     diff = [a - b for a, b in zip(team_1_vector, team_2_vector)]
     # print(f"diff: {diff}")
-    # diff.append(home)
+    diff.append(home)
     # print(f"diff after append: {diff}")
     # Depending on the model you use, you will either need to return model.predict_proba or model.predict
     # predict_proba = Linear Reg, Linear SVC
@@ -201,6 +201,11 @@ def findWinner(team1, team2, modelUsed):
         print("Probability that {0} wins: {1}".format(team2, 1 - prediction))
     else:
         print("Probability that {0} wins: {1}".format(team1, prediction))
+    with open('Predictions/predictions.txt', 'a') as f:
+        if (prediction < 0.5):
+            f.write(f"I am {1-prediction} sure that {team2} will beat {team1}\n")
+        else:
+            f.write(f"I am {prediction} sure that {team1} will beat {team2}\n")
 
 
 trainedModel = trainModel(learning_rate, n_estimators, max_depth)
@@ -209,15 +214,80 @@ pickle.dump(trainedModel, open('models/' + sav_string, 'wb'))
 
 
 # First round games in the South for example
-findWinner('Virginia', 'UMBC', trainedModel)
-findWinner('Creighton', 'Kansas St', trainedModel)
-findWinner('Kentucky', 'Davidson', trainedModel)
-findWinner('Arizona', 'Buffalo', trainedModel)
-findWinner('Miami FL', 'Loyola-Chicago', trainedModel)
-findWinner('Tennessee', 'Wright St', trainedModel)
-findWinner('Nevada', 'Texas', trainedModel)
-findWinner('Cincinnati', 'Georgia St', trainedModel)
-findWinner('Xavier', 'Gonzaga', trainedModel)
-findWinner('Duke', 'Michigan St', trainedModel)
+# findWinner('Virginia', 'UMBC', trainedModel)
+# findWinner('Creighton', 'Kansas St', trainedModel)
+# findWinner('Kentucky', 'Davidson', trainedModel)
+# findWinner('Arizona', 'Buffalo', trainedModel)
+# findWinner('Miami FL', 'Loyola-Chicago', trainedModel)
+# findWinner('Tennessee', 'Wright St', trainedModel)
+# findWinner('Nevada', 'Texas', trainedModel)
+# findWinner('Cincinnati', 'Georgia St', trainedModel)
+# findWinner('Xavier', 'TX Southern', trainedModel)
+# findWinner('Missouri', 'Florida St', trainedModel)
+# findWinner('Ohio St', 'South Dakota', trainedModel)
+# findWinner('Gonzaga', 'UNC Greensboro', trainedModel)
+# findWinner('Houston', 'San Diego St', trainedModel)
+# findWinner('Michigan', 'Montana', trainedModel)
+# findWinner('Providence', 'Texas A&M', trainedModel)
+# findWinner('North Carolina', 'Lipscomb', trainedModel)
+#
+# findWinner('Villanova', 'Radford', trainedModel)
+# findWinner('Virginia Tech', 'Alabama', trainedModel)
+# findWinner('West Virginia', 'Murray St', trainedModel)
+# findWinner('Wichita St', 'Marshall', trainedModel)
+# findWinner('Florida', 'St Bonaventure', trainedModel)
+# findWinner('Texas Tech', 'SF Austin', trainedModel)
+# findWinner('Arkansas', 'Butler', trainedModel)
+# findWinner('Purdue', 'CS Fullerton', trainedModel)
+# findWinner('Kansas', 'Penn', trainedModel)
+# findWinner('Seton Hall', 'NC State', trainedModel)
+# findWinner('Clemson', 'New Mexico St', trainedModel)
+# findWinner('Auburn', 'Charleston So', trainedModel)
+# findWinner('TCU', 'Syracuse', trainedModel)
+# findWinner('Michigan St', 'Bucknell', trainedModel)
+# findWinner('Rhode Island', 'Oklahoma', trainedModel)
+# findWinner('Duke', 'Iona', trainedModel)
 
-x = 10
+#Second Round
+
+# findWinner('Virginia', 'Creighton', trainedModel)
+# findWinner('Davidson', 'Arizona', trainedModel)
+# findWinner('Loyola-Chicago', 'Tennessee', trainedModel)
+# findWinner('Nevada', 'Cincinnati', trainedModel)
+# findWinner('Xavier', 'Missouri', trainedModel)
+# findWinner('Ohio St', 'Gonzaga', trainedModel)
+# findWinner('Houston', 'Michigan', trainedModel)
+# findWinner('Providence', 'North Carolina', trainedModel)
+# findWinner('Villanova', 'Virginia Tech', trainedModel)
+# findWinner('Murray St', 'Wichita St', trainedModel)
+# findWinner('St Bonaventure', 'Texas Tech', trainedModel)
+# findWinner('Arkansas', 'Purdue', trainedModel)
+# findWinner('Kansas', 'Seton Hall', trainedModel)
+# findWinner('New Mexico St', 'Auburn', trainedModel)
+# findWinner('TCU', 'Michigan St', trainedModel)
+# findWinner('Rhode Island', 'Duke', trainedModel)
+
+
+#Sweet 16
+# findWinner('Virginia', 'Arizona', trainedModel)
+# findWinner('Loyola-Chicago', 'Cincinnati', trainedModel)
+# findWinner('Xavier', 'Gonzaga', trainedModel)
+# findWinner('Michigan', 'North Carolina', trainedModel)
+# findWinner('Villanova', 'Murray St', trainedModel)
+# findWinner('St Bonaventure', 'Purdue', trainedModel)
+# findWinner('Kansas', 'New Mexico St', trainedModel)
+# findWinner('Michigan St', 'Duke', trainedModel)
+
+#Elite 8:
+# findWinner('Virginia', 'Cincinnati', trainedModel)
+# findWinner('Gonzaga', 'Michigan', trainedModel)
+# findWinner('Villanova', 'Purdue', trainedModel)
+# findWinner('Kansas', 'Duke', trainedModel)
+
+#Final 4:
+findWinner('Virginia', 'Gonzaga', trainedModel)
+findWinner('Villanova', 'Duke', trainedModel)
+
+#Finals
+findWinner('Virginia', 'Villanova', trainedModel)
+

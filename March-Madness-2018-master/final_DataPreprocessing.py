@@ -1,4 +1,4 @@
-# Format: 
+# Format:
 # 1) Imports
 # 2) Load CSVs
 # 3) Data Structures
@@ -429,52 +429,10 @@ def createTrainingSet(years, saveYears):
     for year in years:
         team_vectors = createSeasonDict(year)
         season = reg_season_compact_pd[reg_season_compact_pd['Season'] == year]
-        numGamesInSeason = len(season.index)
-        tourney = tourney_compact_pd[tourney_compact_pd['Season'] == year]
-        numGamesInSeason += len(tourney.index)
-        xTrainSeason = np.zeros((numGamesInSeason, numFeatures))# + 1))
-        yTrainSeason = np.zeros((numGamesInSeason))
-        counter = 0
-        for index, row in season.iterrows():
-            w_team = row['WTeamID']
-            w_vector = team_vectors[w_team]
-            l_team = row['LTeamID']
-            l_vector = team_vectors[l_team]
-            diff = [a - b for a, b in zip(w_vector, l_vector)]
-            home = getHomeStat(row['WLoc'])
-            if (counter % 2 == 0):
-                # diff.append(home)
-                xTrainSeason[counter] = diff
-                yTrainSeason[counter] = 1
-            else:
-                diff.append(-home)
-                xTrainSeason[counter] = [-p for p in diff]
-                yTrainSeason[counter] = 0
-            counter += 1
-        for index, row in tourney.iterrows():
-            w_team = row['WTeamID']
-            w_vector = team_vectors[w_team]
-            l_team = row['LTeamID']
-            l_vector = team_vectors[l_team]
-            diff = [a - b for a, b in zip(w_vector, l_vector)]
-            # home = 0  # All tournament games are neutral
-            if (counter % 2 == 0):
-                diff.append(home)
-                xTrainSeason[counter] = diff
-                yTrainSeason[counter] = 1
-            else:
-                diff.append(-home)
-                xTrainSeason[counter] = [-p for p in diff]
-                yTrainSeason[counter] = 0
-            counter += 1
-        xTrain[indexCounter:numGamesInSeason + indexCounter] = xTrainSeason
-        yTrain[indexCounter:numGamesInSeason + indexCounter] = yTrainSeason
-        indexCounter += numGamesInSeason
-        print(f"xTrain just before finishing year: {xTrain}")
-        print('Finished year:', year)
+
+
         if (year in saveYears):
             np.save('Data/test_PrecomputedMatrices/TeamVectors/' + str(year) + 'TeamVectors', team_vectors)
-    print(f"xTrain: {xTrain.shape}, yTrain: {yTrain.shape}")
     return xTrain, yTrain
 
 
