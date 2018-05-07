@@ -1,9 +1,4 @@
-# Format: 
-# 1) Imports
-# 2) Load CSVs
-# 3) Data Structures
-# 4) Data Preprocessing Helper Functions
-# 5) Create Training Set
+#!/usr/bin/env
 
 ############################## IMPORTS ##############################
 
@@ -236,8 +231,8 @@ def getHomeStat(row):
 
 
 def compareTwoTeams(id_1, id_2, year):
-    team_1 = getSeasonData(id_1, year)
-    team_2 = getSeasonData(id_2, year)
+    team_1 = get_season_data(id_1, year)
+    team_2 = get_season_data(id_2, year)
     diff = [a - b for a, b in zip(team_1, team_2)]
     return diff
 
@@ -255,34 +250,33 @@ def normalizeInput2(X):
 
 
 def create_adv_stats(df, tm_id, year):
-    gamesWon = df[df.WTeamID == tm_id]
-    totalPointsScored = gamesWon['WScore'].sum()
-    gamesLost = df[df.LTeamID == tm_id]
-    totalGames = gamesWon.append(gamesLost)
-    numGames = len(totalGames.index)
+    games_won = df[df.WTeamID == tm_id]
+    total_points_scored = games_won['WScore'].sum()
+    games_lost = df[df.LTeamID == tm_id]
+    totalGames = games_won.append(games_lost)
+    num_games = len(totalGames.index)
 
-    if numGames == 0:
-        vals = np.zeros(13).tolist()
-        return vals
+    if num_games == 0:
+        fill = np.zeros(13).tolist()
+        return fill
     else:
         ##########################
         # CALCULATING POSSESSION #
         ##########################
         df = df[(df['WTeamID'] == tm_id) | (df['LTeamID'] == tm_id)]
         df = df[df['Season'] == year]
-        fill = 2
         # Points Winning/Losing Team
-        df['WPts'] = df.apply(lambda row: 2*row.WFGM + row.WFGM3 + row.WFTM, axis=1)
-        df['LPts'] = df.apply(lambda row: 2*row.LFGM + row.LFGM3 + row.LFTM, axis=1)
+        df['WPts'] = df.apply(lambda row: 2 * row.WFGM + row.WFGM3 + row.WFTM, axis=1)
+        df['LPts'] = df.apply(lambda row: 2 * row.LFGM + row.LFGM3 + row.LFTM, axis=1)
 
         # Calculate Winning/losing Team Possession Feature
-        w_pos = df.apply(lambda row: 0.96*(row.WFGA + row.WTO + 0.44*row.WFTA - row.WOR), axis=1)
-        l_pos = df.apply(lambda row: 0.96*(row.LFGA + row.LTO + 0.44*row.LFTA - row.LOR), axis=1)
+        w_pos = df.apply(lambda row: 0.96 * (row.WFGA + row.WTO + 0.44 * row.WFTA - row.WOR), axis=1)
+        l_pos = df.apply(lambda row: 0.96 * (row.LFGA + row.LTO + 0.44 * row.LFTA - row.LOR), axis=1)
 
         # two teams use almost the same number of possessions in a game
         # (plus/minus one or two - depending on how quarters end)
         # so let's just take the average
-        df['Pos'] = (w_pos+l_pos)/2
+        df['Pos'] = (w_pos + l_pos) / 2
 
         ####################
         # ADVANCED METRICS #
@@ -297,17 +291,17 @@ def create_adv_stats(df, tm_id, year):
         df['LDefRtg'] = df.WOffRtg
 
         # Net Rating = Off.Rtg - Def.Rtg
-        df['WNetRtg'] = df.apply(lambda row:(row.WOffRtg - row.WDefRtg), axis=1)
-        df['LNetRtg'] = df.apply(lambda row:(row.LOffRtg - row.LDefRtg), axis=1)
+        df['WNetRtg'] = df.apply(lambda row: (row.WOffRtg - row.WDefRtg), axis=1)
+        df['LNetRtg'] = df.apply(lambda row: (row.LOffRtg - row.LDefRtg), axis=1)
 
         # Assist Ratio : Percentage of team possessions that end in assists
-        df['WAstR'] = df.apply(lambda row: 100 * row.WAst / (row.WFGA + 0.44*row.WFTA + row.WAst + row.WTO), axis=1)
-        df['LAstR'] = df.apply(lambda row: 100 * row.LAst / (row.LFGA + 0.44*row.LFTA + row.LAst + row.LTO), axis=1)
+        df['WAstR'] = df.apply(lambda row: 100 * row.WAst / (row.WFGA + 0.44 * row.WFTA + row.WAst + row.WTO), axis=1)
+        df['LAstR'] = df.apply(lambda row: 100 * row.LAst / (row.LFGA + 0.44 * row.LFTA + row.LAst + row.LTO), axis=1)
 
         # Turnover Ratio: Number of turnovers of a team per 100 possessions used.
         # (TO * 100) / (FGA + (FTA * 0.44) + AST + TO)
-        df['WTOR'] = df.apply(lambda row: 100 * row.WTO / (row.WFGA + 0.44*row.WFTA + row.WAst + row.WTO), axis=1)
-        df['LTOR'] = df.apply(lambda row: 100 * row.LTO / (row.LFGA + 0.44*row.LFTA + row.LAst + row.LTO), axis=1)
+        df['WTOR'] = df.apply(lambda row: 100 * row.WTO / (row.WFGA + 0.44 * row.WFTA + row.WAst + row.WTO), axis=1)
+        df['LTOR'] = df.apply(lambda row: 100 * row.LTO / (row.LFGA + 0.44 * row.LFTA + row.LAst + row.LTO), axis=1)
 
         # True Shooting Percentage : Measure of Shooting Efficiency (FGA/FGA3, FTA)
         df['WTSP'] = df.apply(lambda row: 100 * row.WPts / (2 * (row.WFGA + 0.44 * row.WFTA)), axis=1)
@@ -334,15 +328,23 @@ def create_adv_stats(df, tm_id, year):
         df['LRP'] = df.apply(lambda row: (row.LDR + row.LOR) / (row.WDR + row.WOR + row.LDR + row.LOR), axis=1)
 
         # PIE% : Player Impact Estimate (but calculated for team)
-        wtmp = df.apply(lambda row: row.WPts + row.WFGM + row.WFTM - row.WFGA - row.WFTA + row.WDR + 0.5*row.WOR + row.WAst +row.WStl + 0.5*row.WBlk - row.WPF - row.WTO, axis=1)
-        ltmp = df.apply(lambda row: row.LPts + row.LFGM + row.LFTM - row.LFGA - row.LFTA + row.LDR + 0.5*row.LOR + row.LAst +row.LStl + 0.5*row.LBlk - row.LPF - row.LTO, axis=1)
-        df['WPIE'] = wtmp/(wtmp + ltmp)
-        df['LPIE'] = ltmp/(wtmp + ltmp)
+        wtmp = df.apply(lambda
+                            row: row.WPts + row.WFGM + row.WFTM - row.WFGA - row.WFTA + row.WDR + 0.5 * row.WOR + row.WAst + row.WStl + 0.5 * row.WBlk - row.WPF - row.WTO,
+                        axis=1)
+        ltmp = df.apply(lambda
+                            row: row.LPts + row.LFGM + row.LFTM - row.LFGA - row.LFTA + row.LDR + 0.5 * row.LOR + row.LAst + row.LStl + 0.5 * row.LBlk - row.LPF - row.LTO,
+                        axis=1)
+        df['WPIE'] = wtmp / (wtmp + ltmp)
+        df['LPIE'] = ltmp / (wtmp + ltmp)
 
         # Build predictive model on advanced stats only
-        adv_stats_df = df.drop(['WFGM', 'WFGA', 'WFGM3', 'WFGA3', 'WFTM', 'WFTA', 'WOR', 'WDR', 'WAst', 'WTO', 'WStl', 'WBlk', 'WPF'], axis=1)
+        adv_stats_df = df.drop(
+            ['WFGM', 'WFGA', 'WFGM3', 'WFGA3', 'WFTM', 'WFTA', 'WOR', 'WDR', 'WAst', 'WTO', 'WStl', 'WBlk', 'WPF'],
+            axis=1)
 
-        adv_stats_df.drop(['LFGM', 'LFGA', 'LFGM3', 'LFGA3', 'LFTM', 'LFTA', 'LOR', 'LDR', 'LAst', 'LTO', 'LStl', 'LBlk', 'LPF'], axis=1, inplace=True)
+        adv_stats_df.drop(
+            ['LFGM', 'LFGA', 'LFGM3', 'LFGA3', 'LFTM', 'LFTA', 'LOR', 'LDR', 'LAst', 'LTO', 'LStl', 'LBlk', 'LPF'],
+            axis=1, inplace=True)
 
         categories = adv_stats_df.columns.tolist()
         win_columns = list(filter(lambda s: s[0] == 'W', categories))
@@ -372,7 +374,6 @@ def create_adv_stats(df, tm_id, year):
         end_df.insert(loc=0, column='TeamID', value=end_df.index.tolist())
         end_df.sort_values(by=['TeamID'], inplace=True)
         end_df.reset_index(drop=True, inplace=True)
-        filler = 2
         adv_stats_vals = end_df.values.tolist()[0]
 
         return adv_stats_vals
@@ -386,7 +387,7 @@ def GetElo(tm_id, year):
 
 ############################## MAIN PREPROCESSING FUNCTIONS ##############################
 
-def getSeasonData(team_id, year):
+def get_season_data(team_id, year):
     # The data frame below holds stats for every single game in the given year
     year_data_compact_pd = reg_season_compact_pd[reg_season_compact_pd['Season'] == year]
     year_data_pd = reg_season_detail_pd[reg_season_detail_pd['Season'] == year]
@@ -403,37 +404,38 @@ def getSeasonData(team_id, year):
     adv_stat.append(checkPower6Conference(team_id))
     return adv_stat
 
-def createSeasonDict(year):
+
+def make_season_dictionary(year):
     seasonDictionary = collections.defaultdict(list)
     for team in teamList:
         team_id = teams_pd[teams_pd['TeamName'] == team].values[0][0]
-        team_vector = getSeasonData(team_id, year)
+        team_vector = get_season_data(team_id, year)
         seasonDictionary[team_id] = team_vector
     return seasonDictionary
 
 
-def createTrainingSet(years, saveYears):
-    totalNumGames = 0
+def createTrainingSet(years, save_years):
+    total_num_games = 0
     for year in years:
         season = reg_season_compact_pd[reg_season_compact_pd['Season'] == year]
-        totalNumGames += len(season.index)
+        total_num_games += len(season.index)
         tourney = tourney_compact_pd[tourney_compact_pd['Season'] == year]
-        totalNumGames += len(tourney.index)
-    numFeatures = len(
-        getSeasonData(1181, 2017))  # Just choosing a random team and seeing the dimensionality of the vector
-    print(f"numFeatures: {numFeatures} based on 2017")
-    xTrain = np.zeros((totalNumGames, numFeatures))# + 1))
-    yTrain = np.zeros((totalNumGames))
-    print(f"xTrain shape: {xTrain.shape}, yTrain shape: {yTrain.shape}, these are for the zero matrices")
-    indexCounter = 0
+        total_num_games += len(tourney.index)
+    num_features = len(
+        get_season_data(1181, 2017))  # Just choosing a random team and seeing the dimensionality of the vector
+    print(f"num_features: {num_features} based on 2017")
+    x_train = np.zeros((total_num_games, num_features))  # + 1))
+    y_train = np.zeros(total_num_games)
+    print(f"x_train shape: {x_train.shape}, y_train shape: {y_train.shape}, these are for the zero matrices")
+    index_counter = 0
     for year in years:
-        team_vectors = createSeasonDict(year)
+        team_vectors = make_season_dictionary(year)
         season = reg_season_compact_pd[reg_season_compact_pd['Season'] == year]
-        numGamesInSeason = len(season.index)
+        num_games_in_season = len(season.index)
         tourney = tourney_compact_pd[tourney_compact_pd['Season'] == year]
-        numGamesInSeason += len(tourney.index)
-        xTrainSeason = np.zeros((numGamesInSeason, numFeatures))# + 1))
-        yTrainSeason = np.zeros((numGamesInSeason))
+        num_games_in_season += len(tourney.index)
+        x_train_season = np.zeros((num_games_in_season, num_features))  # + 1))
+        y_train_season = np.zeros(num_games_in_season)
         counter = 0
         for index, row in season.iterrows():
             w_team = row['WTeamID']
@@ -442,14 +444,14 @@ def createTrainingSet(years, saveYears):
             l_vector = team_vectors[l_team]
             diff = [a - b for a, b in zip(w_vector, l_vector)]
             home = getHomeStat(row['WLoc'])
-            if (counter % 2 == 0):
+            if counter % 2 == 0:
                 # diff.append(home)
-                xTrainSeason[counter] = diff
-                yTrainSeason[counter] = 1
+                x_train_season[counter] = diff
+                y_train_season[counter] = 1
             else:
                 diff.append(-home)
-                xTrainSeason[counter] = [-p for p in diff]
-                yTrainSeason[counter] = 0
+                x_train_season[counter] = [-p for p in diff]
+                y_train_season[counter] = 0
             counter += 1
         for index, row in tourney.iterrows():
             w_team = row['WTeamID']
@@ -460,45 +462,34 @@ def createTrainingSet(years, saveYears):
             # home = 0  # All tournament games are neutral
             if (counter % 2 == 0):
                 diff.append(home)
-                xTrainSeason[counter] = diff
-                yTrainSeason[counter] = 1
+                x_train_season[counter] = diff
+                y_train_season[counter] = 1
             else:
                 diff.append(-home)
-                xTrainSeason[counter] = [-p for p in diff]
-                yTrainSeason[counter] = 0
+                x_train_season[counter] = [-p for p in diff]
+                y_train_season[counter] = 0
             counter += 1
-        xTrain[indexCounter:numGamesInSeason + indexCounter] = xTrainSeason
-        yTrain[indexCounter:numGamesInSeason + indexCounter] = yTrainSeason
-        indexCounter += numGamesInSeason
-        print(f"xTrain just before finishing year: {xTrain}")
+        x_train[index_counter:num_games_in_season + index_counter] = x_train_season
+        y_train[index_counter:num_games_in_season + index_counter] = y_train_season
+        index_counter += num_games_in_season
+        print(f"x_train just before finishing year: {x_train}")
         print('Finished year:', year)
-        if (year in saveYears):
+        if (year in save_years):
             np.save('Data/test_PrecomputedMatrices/TeamVectors/' + str(year) + 'TeamVectors', team_vectors)
-    print(f"xTrain: {xTrain.shape}, yTrain: {yTrain.shape}")
-    return xTrain, yTrain
+    print(f"x_train: {x_train.shape}, y_train: {y_train.shape}")
+    return x_train, y_train
 
 
-def createAndSave(years, saveYears):
-    xTrain, yTrain = createTrainingSet(years, saveYears)
-    np.save('Data/test_PrecomputedMatrices/xTrain', xTrain)
-    np.save('Data/test_PrecomputedMatrices/yTrain', yTrain)
+def create_plus_save(years, save_years):
+    x_train, y_train = createTrainingSet(years, save_years)
+    np.save('Data/test_PrecomputedMatrices/x_train', x_train)
+    np.save('Data/test_PrecomputedMatrices/y_train', y_train)
 
 
 ############################## CREATE TRAINING SET ##############################
 
-years = range(2003, 2019) #1993 - 2019
+years = range(2003, 2019)  # 1993 - 2019
 # Saves the team vectors for the following years
-saveYears = range(2014, 2019)
-# if os.path.exists("Data/test_PrecomputedMatrices/xTrain.npy") and os.path.exists("Data/test_PrecomputedMatrices/yTrain.npy"):
-#     print('There is already a precomputed xTrain and yTrain.')
-#     response = raw_input('Do you want to remove these files and create a new training set? (y/n) ')
-#     # response = 'y'
-#     if (response == 'y'):
-#         os.remove("Data/test_PrecomputedMatrices/xTrain.npy")
-#         os.remove("Data/test_PrecomputedMatrices/yTrain.npy")
-#         createAndSave(years, saveYears)
-#     else:
-#         print('Okay, going to exit now.')
-# else:
-#     createAndSave(years, saveYears)
-createAndSave(years, saveYears)
+save_years = range(2014, 2019)
+
+create_plus_save(years, save_years)

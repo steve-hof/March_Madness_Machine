@@ -40,20 +40,20 @@ n_estimators = 72
 max_depth = 5
 ############################## LOAD TRAINING SET ##############################
 
-if os.path.exists("Data/test_PrecomputedMatrices/xTrain.npy") and os.path.exists("Data/test_PrecomputedMatrices/yTrain.npy"):
-    xTrain = np.load("Data/test_PrecomputedMatrices/xTrain.npy")
-    yTrain = np.load("Data/test_PrecomputedMatrices/yTrain.npy")
-    print(f"xTrain shape = {xTrain.shape}")
-    temp = np.column_stack([xTrain, yTrain])
+if os.path.exists("Data/test_PrecomputedMatrices/x_train.npy") and os.path.exists("Data/test_PrecomputedMatrices/y_train.npy"):
+    x_train = np.load("Data/test_PrecomputedMatrices/x_train.npy")
+    y_train = np.load("Data/test_PrecomputedMatrices/y_train.npy")
+    print(f"x_train shape = {x_train.shape}")
+    temp = np.column_stack([x_train, y_train])
     temp = temp[~np.isnan(temp).any(axis=1)]
-    yTrain = temp[:, -1:]
-    xTrain = temp[:, :-1]
-    yTrain = np.ravel(yTrain)
-    pow_bool = xTrain[:, -1:]
-    xTrain = xTrain[:, :-1]
-    # xTrain = preprocessing.normalize(xTrain, norm='l2', axis=0)
-    xTrain = np.column_stack([xTrain, pow_bool])
-    print(f"normalized xTrain: {xTrain} with shape {xTrain.shape}")
+    y_train = temp[:, -1:]
+    x_train = temp[:, :-1]
+    y_train = np.ravel(y_train)
+    pow_bool = x_train[:, -1:]
+    x_train = x_train[:, :-1]
+    # x_train = preprocessing.normalize(x_train, norm='l2', axis=0)
+    x_train = np.column_stack([x_train, pow_bool])
+    print(f"normalized x_train: {x_train} with shape {x_train.shape}")
 else:
     print('We need a training set! Run DataPreprocessing.py')
     sys.exit()
@@ -77,7 +77,7 @@ accuracy = []
 numTrials = 0
 
 for i in range(numTrials):
-    X_train, X_test, Y_train, Y_test = train_test_split(xTrain, yTrain)
+    X_train, X_test, Y_train, Y_test = train_test_split(x_train, y_train)
     print(f"Xshape = {X_train.shape}, YShape = {Y_train.shape}")
     startTime = datetime.now()  # For some timing stuff
     results = model.fit(X_train, Y_train)
@@ -103,7 +103,6 @@ def predictGame(team_1_vector, team_2_vector, home, modelUsed):
     # Depending on the model you use, you will either need to return model.predict_proba or model.predict
     # predict_proba = Linear Reg, Linear SVC
     # predict = Gradient Boosted, Ridge, HuberRegressor
-    filler = diff
     # return modelUsed.predict_proba([diff])[0][1]
     return modelUsed.predict([diff])[0]
 
@@ -136,17 +135,17 @@ def createPrediction(stage2=False):
     results = [[0 for x in range(2)] for x in range(len(localPd.index))]
 
     predictionModel = GradientBoostingRegressor(n_estimators=100, max_depth=5)
-    predictionModel.fit(xTrain, yTrain)
+    predictionModel.fit(x_train, y_train)
 
     for index, row in localPd.iterrows():
         matchupId = row['ID']
         year = int(matchupId[0:4])
-        teamVectors = listDictionaries[year - years[0]]
-        team1Id = int(matchupId[5:9])
-        team2Id = int(matchupId[10:14])
-        team1Vector = teamVectors[team1Id]
-        team2Vector = teamVectors[team2Id]
-        pred1 = predictGame(team1Vector, team2Vector, 0, predictionModel)
+        team_vectors = listDictionaries[year - years[0]]
+        team_1_id = int(matchupId[5:9])
+        team_2_id = int(matchupId[10:14])
+        team_1_vector = team_vectors[team_1_id]
+        team_2_vector = team_vectors[team_2_id]
+        pred1 = predictGame(team_1_vector, team_2_vector, 0, predictionModel)
         pred = pred1.clip(0., 1.)
         results[index][0] = matchupId
         results[index][1] = pred
@@ -167,21 +166,21 @@ def createPrediction(stage2=False):
 
 def trainModel(learning_rate, n_estimators, max_depth):
     model = GradientBoostingRegressor(learning_rate=learning_rate, n_estimators=n_estimators, max_depth=max_depth)
-    model.fit(xTrain, yTrain)
+    model.fit(x_train, y_train)
     return model
 
 
 def randomWinner(team1, team2, modelUsed):
     year = [2018]
-    teamVectors = loadTeamVectors(year)[0]
-    team1Vector = teamVectors[int(teams_pd[teams_pd['TeamName'] == team1].values[0][0])]
-    team2Vector = teamVectors[int(teams_pd[teams_pd['TeamName'] == team2].values[0][0])]
+    team_vectors = loadTeamVectors(year)[0]
+    team_1_vector = team_vectors[int(teams_pd[teams_pd['TeamName'] == team1].values[0][0])]
+    team_2_vector = team_vectors[int(teams_pd[teams_pd['TeamName'] == team2].values[0][0])]
     # Normalize
-    team1Vector = preprocessing.normalize(team1Vector, norm='l2', axis=0)
-    team2Vector = preprocessing.normalize(team2Vector, norm='l2', axis=0)
+    team_1_vector = preprocessing.normalize(team_1_vector, norm='l2', axis=0)
+    team_2_vector = preprocessing.normalize(team_2_vector, norm='l2', axis=0)
 
 
-    prediction = predictGame(team1Vector, team2Vector, 0, modelUsed)
+    prediction = predictGame(team_1_vector, team_2_vector, 0, modelUsed)
     for i in range(10):
         if (prediction > random.random()):
             print("{0} Wins".format(team1))
@@ -191,18 +190,18 @@ def randomWinner(team1, team2, modelUsed):
 
 def findWinner(team1, team2, modelUsed):
     year = [2018]
-    teamVectors = loadTeamVectors(year)[0]
-    team1Vector = teamVectors[int(teams_pd[teams_pd['TeamName'] == team1].values[0][0])]
-    team1Vector = team1Vector[:-1]
-    team2Vector = teamVectors[int(teams_pd[teams_pd['TeamName'] == team2].values[0][0])]
-    team2Vector = team2Vector[:-1]
-    prediction = predictGame(team1Vector, team2Vector, 0, modelUsed)
-    if (prediction < 0.5):
+    team_vectors = loadTeamVectors(year)[0]
+    team_1_vector = team_vectors[int(teams_pd[teams_pd['TeamName'] == team1].values[0][0])]
+    team_1_vector = team_1_vector[:-1]
+    team_2_vector = team_vectors[int(teams_pd[teams_pd['TeamName'] == team2].values[0][0])]
+    team_2_vector = team_2_vector[:-1]
+    prediction = predictGame(team_1_vector, team_2_vector, 0, modelUsed)
+    if prediction < 0.5:
         print("Probability that {0} wins: {1}".format(team2, 1 - prediction))
     else:
         print("Probability that {0} wins: {1}".format(team1, prediction))
     with open('Predictions/predictions.txt', 'a') as f:
-        if (prediction < 0.5):
+        if prediction < 0.5:
             f.write(f"I am {1-prediction} sure that {team2} will beat {team1}\n")
         else:
             f.write(f"I am {prediction} sure that {team1} will beat {team2}\n")
@@ -212,82 +211,4 @@ trainedModel = trainModel(learning_rate, n_estimators, max_depth)
 sav_string = f"lr_{learning_rate}num_{n_estimators}md_{max_depth}"
 pickle.dump(trainedModel, open('models/' + sav_string, 'wb'))
 
-
-# First round games in the South for example
-# findWinner('Virginia', 'UMBC', trainedModel)
-# findWinner('Creighton', 'Kansas St', trainedModel)
-# findWinner('Kentucky', 'Davidson', trainedModel)
-# findWinner('Arizona', 'Buffalo', trainedModel)
-# findWinner('Miami FL', 'Loyola-Chicago', trainedModel)
-# findWinner('Tennessee', 'Wright St', trainedModel)
-# findWinner('Nevada', 'Texas', trainedModel)
-# findWinner('Cincinnati', 'Georgia St', trainedModel)
-# findWinner('Xavier', 'TX Southern', trainedModel)
-# findWinner('Missouri', 'Florida St', trainedModel)
-# findWinner('Ohio St', 'South Dakota', trainedModel)
-# findWinner('Gonzaga', 'UNC Greensboro', trainedModel)
-# findWinner('Houston', 'San Diego St', trainedModel)
-# findWinner('Michigan', 'Montana', trainedModel)
-# findWinner('Providence', 'Texas A&M', trainedModel)
-# findWinner('North Carolina', 'Lipscomb', trainedModel)
-#
-# findWinner('Villanova', 'Radford', trainedModel)
-# findWinner('Virginia Tech', 'Alabama', trainedModel)
-# findWinner('West Virginia', 'Murray St', trainedModel)
-# findWinner('Wichita St', 'Marshall', trainedModel)
-# findWinner('Florida', 'St Bonaventure', trainedModel)
-# findWinner('Texas Tech', 'SF Austin', trainedModel)
-# findWinner('Arkansas', 'Butler', trainedModel)
-# findWinner('Purdue', 'CS Fullerton', trainedModel)
-# findWinner('Kansas', 'Penn', trainedModel)
-# findWinner('Seton Hall', 'NC State', trainedModel)
-# findWinner('Clemson', 'New Mexico St', trainedModel)
-# findWinner('Auburn', 'Charleston So', trainedModel)
-# findWinner('TCU', 'Syracuse', trainedModel)
-# findWinner('Michigan St', 'Bucknell', trainedModel)
-# findWinner('Rhode Island', 'Oklahoma', trainedModel)
-# findWinner('Duke', 'Iona', trainedModel)
-
-#Second Round
-
-# findWinner('Virginia', 'Creighton', trainedModel)
-# findWinner('Davidson', 'Arizona', trainedModel)
-# findWinner('Loyola-Chicago', 'Tennessee', trainedModel)
-# findWinner('Nevada', 'Cincinnati', trainedModel)
-# findWinner('Xavier', 'Missouri', trainedModel)
-# findWinner('Ohio St', 'Gonzaga', trainedModel)
-# findWinner('Houston', 'Michigan', trainedModel)
-# findWinner('Providence', 'North Carolina', trainedModel)
-# findWinner('Villanova', 'Virginia Tech', trainedModel)
-# findWinner('Murray St', 'Wichita St', trainedModel)
-# findWinner('St Bonaventure', 'Texas Tech', trainedModel)
-# findWinner('Arkansas', 'Purdue', trainedModel)
-# findWinner('Kansas', 'Seton Hall', trainedModel)
-# findWinner('New Mexico St', 'Auburn', trainedModel)
-# findWinner('TCU', 'Michigan St', trainedModel)
-# findWinner('Rhode Island', 'Duke', trainedModel)
-
-
-#Sweet 16
-# findWinner('Virginia', 'Arizona', trainedModel)
-# findWinner('Loyola-Chicago', 'Cincinnati', trainedModel)
-# findWinner('Xavier', 'Gonzaga', trainedModel)
-# findWinner('Michigan', 'North Carolina', trainedModel)
-# findWinner('Villanova', 'Murray St', trainedModel)
-# findWinner('St Bonaventure', 'Purdue', trainedModel)
-# findWinner('Kansas', 'New Mexico St', trainedModel)
-# findWinner('Michigan St', 'Duke', trainedModel)
-
-#Elite 8:
-# findWinner('Virginia', 'Cincinnati', trainedModel)
-# findWinner('Gonzaga', 'Michigan', trainedModel)
-# findWinner('Villanova', 'Purdue', trainedModel)
-# findWinner('Kansas', 'Duke', trainedModel)
-
-#Final 4:
-findWinner('Virginia', 'Gonzaga', trainedModel)
-findWinner('Villanova', 'Duke', trainedModel)
-
-#Finals
-findWinner('Virginia', 'Villanova', trainedModel)
-
+findWinner('Michigan', 'Villanova', trainedModel)
