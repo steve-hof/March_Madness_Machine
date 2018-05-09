@@ -31,11 +31,11 @@ NCAAChampionsList = tourney_results_pd['NCAA Champion'].tolist()
 def checkPower6Conference(team_id):
     team_pd = team_conferences_pd[(team_conferences_pd['Season'] == 2018) & (team_conferences_pd['TeamID'] == team_id)]
     # Can't find the team
-    if (len(team_pd) == 0):
+    if len(team_pd) == 0:
         return 0
     confName = team_pd.iloc[0]['ConfAbbrev']
-    return int(
-        confName == 'sec' or confName == 'acc' or confName == 'big_ten' or confName == 'big_twelve' or confName == 'big_east' or confName == 'pac_twelve')
+    return int(confName == 'sec' or confName == 'acc' or confName == 'big_ten' or
+               confName == 'big_twelve' or confName == 'big_east' or confName == 'pac_twelve')
 
 
 def getTeamID(name):
@@ -69,14 +69,14 @@ def getListForURL(team_list):
         url = base + team + '/'
 
 
-getListForURL(teamList);
+getListForURL(teamList)
 
 
 def handleCases(arr):
     indices = []
     listLen = len(arr)
     for i in range(listLen):
-        if (arr[i] == 'St' or arr[i] == 'FL'):
+        if arr[i] == 'St' or arr[i] == 'FL':
             indices.append(i)
     for p in indices:
         arr[p - 1] = arr[p - 1] + ' ' + arr[p]
@@ -85,7 +85,7 @@ def handleCases(arr):
     return arr
 
 
-def checkConferenceChamp(team_id, year):
+def is_conference_champ(team_id, year):
     year_conf_pd = conference_pd[conference_pd['Year'] == year]
     champs = year_conf_pd['Regular Season Champ'].tolist()
     # For handling cases where there is more than one champion
@@ -98,7 +98,7 @@ def checkConferenceChamp(team_id, year):
         return 0
 
 
-def checkConferenceTourneyChamp(team_id, year):
+def is_conference_tourney_champ(team_id, year):
     year_conf_pd = conference_pd[conference_pd['Year'] == year]
     champs = year_conf_pd['Tournament Champ'].tolist()
     name = getTeamName(team_id)
@@ -108,11 +108,11 @@ def checkConferenceTourneyChamp(team_id, year):
         return 0
 
 
-def getTourneyAppearances(team_id):
+def find_tourney_years(team_id):
     return len(tourney_seeds_pd[tourney_seeds_pd['TeamID'] == team_id].index)
 
 
-def handleDifferentCSV(df):
+def fix_team_names(df):
     # The stats CSV is a lit different in terms of naming so below is just some data cleaning
     df['School'] = df['School'].replace('(State)', 'St', regex=True)
     df['School'] = df['School'].replace('Albany (NY)', 'Albany NY')
@@ -237,7 +237,7 @@ def compareTwoTeams(id_1, id_2, year):
     return diff
 
 
-def normalizeInput(arr):
+def normalize_input_1(arr):
     for i in range(arr.shape[1]):
         minVal = min(arr[:, i])
         maxVal = max(arr[:, i])
@@ -245,7 +245,7 @@ def normalizeInput(arr):
     return arr
 
 
-def normalizeInput2(X):
+def normalize_input_2(X):
     return (X - np.mean(X, axis=0)) / np.std(X, axis=0)
 
 
@@ -253,8 +253,8 @@ def create_adv_stats(df, tm_id, year):
     games_won = df[df.WTeamID == tm_id]
     total_points_scored = games_won['WScore'].sum()
     games_lost = df[df.LTeamID == tm_id]
-    totalGames = games_won.append(games_lost)
-    num_games = len(totalGames.index)
+    total_games = games_won.append(games_lost)
+    num_games = len(total_games.index)
 
     if num_games == 0:
         fill = np.zeros(13).tolist()
@@ -328,12 +328,10 @@ def create_adv_stats(df, tm_id, year):
         df['LRP'] = df.apply(lambda row: (row.LDR + row.LOR) / (row.WDR + row.WOR + row.LDR + row.LOR), axis=1)
 
         # PIE% : Player Impact Estimate (but calculated for team)
-        wtmp = df.apply(lambda
-                            row: row.WPts + row.WFGM + row.WFTM - row.WFGA - row.WFTA + row.WDR + 0.5 * row.WOR + row.WAst + row.WStl + 0.5 * row.WBlk - row.WPF - row.WTO,
-                        axis=1)
-        ltmp = df.apply(lambda
-                            row: row.LPts + row.LFGM + row.LFTM - row.LFGA - row.LFTA + row.LDR + 0.5 * row.LOR + row.LAst + row.LStl + 0.5 * row.LBlk - row.LPF - row.LTO,
-                        axis=1)
+        wtmp = df.apply(lambda row: row.WPts + row.WFGM + row.WFTM - row.WFGA - row.WFTA + row.WDR + 0.5 *
+                        row.WOR + row.WAst + row.WStl + 0.5 * row.WBlk - row.WPF - row.WTO, axis=1)
+        ltmp = df.apply(lambda row: row.LPts + row.LFGM + row.LFTM - row.LFGA - row.LFTA + row.LDR + 0.5 *
+                        row.LOR + row.LAst + row.LStl + 0.5 * row.LBlk - row.LPF - row.LTO, axis=1)
         df['WPIE'] = wtmp / (wtmp + ltmp)
         df['LPIE'] = ltmp / (wtmp + ltmp)
 
@@ -379,7 +377,7 @@ def create_adv_stats(df, tm_id, year):
         return adv_stats_vals
 
 
-def GetElo(tm_id, year):
+def get_elo_rating(tm_id, year):
     elo_year = pd.read_csv('Data/RegSeasonStats/EloStats_' + str(year) + '.csv')
     elo_stat = elo_year[elo_year['TeamID'] == tm_id]['Ending_Elo'].values[0]
     return elo_stat
@@ -397,8 +395,8 @@ def get_season_data(team_id, year):
     adv_stat = adv_stats[1:]
 
     # ELO Calculations
-    elo_stat = GetElo(team_id, year)
-    filler = elo_stat
+    elo_stat = get_elo_rating(team_id, year)
+
     # Combine all stats into final vector
     adv_stat.append(elo_stat)
     adv_stat.append(checkPower6Conference(team_id))
@@ -406,15 +404,15 @@ def get_season_data(team_id, year):
 
 
 def make_season_dictionary(year):
-    seasonDictionary = collections.defaultdict(list)
+    reg_season_dict = collections.defaultdict(list)
     for team in teamList:
         team_id = teams_pd[teams_pd['TeamName'] == team].values[0][0]
         team_vector = get_season_data(team_id, year)
-        seasonDictionary[team_id] = team_vector
-    return seasonDictionary
+        reg_season_dict[team_id] = team_vector
+    return reg_season_dict
 
 
-def createTrainingSet(years, save_years):
+def create_training_set(years, save_years):
     total_num_games = 0
     for year in years:
         season = reg_season_compact_pd[reg_season_compact_pd['Season'] == year]
@@ -481,7 +479,7 @@ def createTrainingSet(years, save_years):
 
 
 def create_plus_save(years, save_years):
-    x_train, y_train = createTrainingSet(years, save_years)
+    x_train, y_train = create_training_set(years, save_years)
     np.save('Data/test_PrecomputedMatrices/x_train', x_train)
     np.save('Data/test_PrecomputedMatrices/y_train', y_train)
 
