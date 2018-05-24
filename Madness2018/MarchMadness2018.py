@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+############################## IMPORTS ##############################
 
 from __future__ import division
 import sklearn
@@ -38,6 +38,64 @@ learning_rate = 0.1
 n_estimators = 72
 max_depth = 5
 
+############################## LOAD TRAINING SET ##############################
+
+if os.path.exists("Data/test_PrecomputedMatrices/x_train.npy") and os.path.exists(
+        "Data/test_PrecomputedMatrices/y_train.npy"):
+    x_train = np.load("Data/test_PrecomputedMatrices/x_train.npy")
+    y_train = np.load("Data/test_PrecomputedMatrices/y_train.npy")
+    print(f"x_train shape = {x_train.shape}")
+    temp = np.column_stack([x_train, y_train])
+    temp = temp[~np.isnan(temp).any(axis=1)]
+    y_train = temp[:, -1:]
+    x_train = temp[:, :-1]
+    y_train = np.ravel(y_train)
+    pow_bool = x_train[:, -1:]
+    x_train = x_train[:, :-1]
+    # x_train = preprocessing.normalize(x_train, norm='l2', axis=0)
+    x_train = np.column_stack([x_train, pow_bool])
+    print(f"normalized x_train: {x_train} with shape {x_train.shape}")
+else:
+    print('We need a training set! Run DataPreprocessing.py')
+    sys.exit()
+
+############################## LOAD CSV FILES ##############################
+
+sample_sub_pd = pd.read_csv('Data/KaggleData/SampleSubmissionStage1.csv')
+sample_sub_pd2 = pd.read_csv('Data/KaggleData/SampleSubmissionStage2.csv')
+teams_pd = pd.read_csv('Data/KaggleData/Teams.csv')
+
+
+############################## TRAIN MODEL ##############################
+# filename = "models/lr_0.1num_300md_5"
+model = GradientBoostingRegressor(learning_rate=learning_rate, n_estimators=n_estimators, max_depth=max_depth)
+# model = pickle.load(open(filename, 'rb'))
+# categories = ['Wins', 'PPG', 'PPGA', 'PowerConf', '3PG', 'APG', 'TOP', 'Conference Champ', 'Tourney Conference Champ',
+#               'Seed', 'SOS', 'SRS', 'RPG', 'SPG', 'Tourney Appearances', 'National Championships', 'Location']
+
+categories = ['OffRtg', 'DefRtg', 'NetRtg', 'AstR', 'TOR', 'TSP', 'eFGP',
+              'FTAR', 'ORP', 'DRP', 'RP', 'PIE', 'Ending_Elo']
+accuracy = []
+numTrials = 0
+
+for i in range(numTrials):
+    X_train, X_test, Y_train, Y_test = train_test_split(x_train, y_train)
+    print(f"Xshape = {X_train.shape}, YShape = {Y_train.shape}")
+    startTime = datetime.now()  # For some timing stuff
+    results = model.fit(X_train, Y_train)
+    preds = model.predict(X_test)
+
+    preds[preds < .5] = 0
+    preds[preds >= .5] = 1
+    localAccuracy = np.mean(preds == Y_test)
+    accuracy.append(localAccuracy)
+    print("Finished run #" + str(i) + ". Accuracy = " + str(localAccuracy))
+    print("Time taken: " + str(datetime.now() - startTime))
+if numTrials != 0:
+    print("The average accuracy is", sum(accuracy) / len(accuracy))
+
+
+############################## TEST MODEL ##############################
 
 def predictGame(team_1_vector, team_2_vector, home, model_used):
     diff = [a - b for a, b in zip(team_1_vector, team_2_vector)]
@@ -51,13 +109,15 @@ def predictGame(team_1_vector, team_2_vector, home, model_used):
     return model_used.predict([diff])[0]
 
 
+############################## CREATE KAGGLE SUBMISSION ##############################
+
 def load_team_vectors(years):
     list_dictionaries = []
     for year in years:
-        curr_vecs = np.load("Data/test_PrecomputedMatrices/TeamVectors/" + str(year) + "TeamVectors.npy",
-                            encoding='latin1').item()
-        # curr_vecs = curr_vecs[:, :-1]
-        list_dictionaries.append(curr_vecs)
+        curVectors = np.load("Data/test_PrecomputedMatrices/TeamVectors/" + str(year) + "TeamVectors.npy",
+                             encoding='latin1').item()
+        # curVectors = curVectors[:, :-1]
+        list_dictionaries.append(curVectors)
     return list_dictionaries
 
 
@@ -101,6 +161,11 @@ def create_prediction(stage2=False):
         writer.writerows(results)
 
 
+# create_prediction()
+# create_prediction(stage2=True)
+
+############################## PREDICTING 2018 BRACKET ##############################
+
 def train_model(learning_rate, n_estimators, max_depth):
     model = GradientBoostingRegressor(learning_rate=learning_rate, n_estimators=n_estimators, max_depth=max_depth)
     model.fit(x_train, y_train)
@@ -143,71 +208,10 @@ def find_winner(team1, team2, model_used):
             f.write(f"I am {prediction} sure that {team1} will beat {team2}\n")
 
 
-def main():
-    ############################## LOAD TRAINING SET ##############################
+trainedModel = train_model(learning_rate, n_estimators, max_depth)
+sav_string = f"lr_{learning_rate}num_{n_estimators}md_{max_depth}"
+pickle.dump(trainedModel, open('models/' + sav_string, 'wb'))
 
-    if os.path.exists("Data/test_PrecomputedMatrices/x_train.npy") and os.path.exists(
-            "Data/test_PrecomputedMatrices/y_train.npy"):
-        x_train = np.load("Data/test_PrecomputedMatrices/x_train.npy")
-        y_train = np.load("Data/test_PrecomputedMatrices/y_train.npy")
-        print(f"x_train shape = {x_train.shape}")
-        temp = np.column_stack([x_train, y_train])
-        temp = temp[~np.isnan(temp).any(axis=1)]
-        y_train = temp[:, -1:]
-        x_train = temp[:, :-1]
-        y_train = np.ravel(y_train)
-        pow_bool = x_train[:, -1:]
-        x_train = x_train[:, :-1]
-        # x_train = preprocessing.normalize(x_train, norm='l2', axis=0)
-        x_train = np.column_stack([x_train, pow_bool])
-        print(f"normalized x_train: {x_train} with shape {x_train.shape}")
-    else:
-        print('We need a training set! Run DataPreprocessing.py')
-        sys.exit()
-
-    ############################## LOAD CSV FILES ##############################
-
-    sample_sub_pd = pd.read_csv('Data/KaggleData/SampleSubmissionStage1.csv')
-    sample_sub_pd2 = pd.read_csv('Data/KaggleData/SampleSubmissionStage2.csv')
-    teams_pd = pd.read_csv('Data/KaggleData/Teams.csv')
-
-    ############################## TRAIN MODEL ##############################
-    # filename = "models/lr_0.1num_300md_5"
-    model = GradientBoostingRegressor(learning_rate=learning_rate, n_estimators=n_estimators, max_depth=max_depth)
-    # model = pickle.load(open(filename, 'rb'))
-    # categories = ['Wins', 'PPG', 'PPGA', 'PowerConf', '3PG', 'APG', 'TOP', 'Conference Champ', 
-    # 'Tourney Conference Champ','Seed', 'SOS', 'SRS', 'RPG', 'SPG', 'Tourney Appearances', 
-    # 'National Championships', 'Location']
-
-    categories = ['OffRtg', 'DefRtg', 'NetRtg', 'AstR', 'TOR', 'TSP', 'eFGP',
-                  'FTAR', 'ORP', 'DRP', 'RP', 'PIE', 'Ending_Elo']
-    accuracy = []
-    num_trials = 0
-
-    for i in range(num_trials):
-        X_train, X_test, Y_train, Y_test = train_test_split(x_train, y_train)
-        print(f"Xshape = {X_train.shape}, YShape = {Y_train.shape}")
-        startTime = datetime.now()  # For some timing stuff
-        results = model.fit(X_train, Y_train)
-        preds = model.predict(X_test)
-
-        preds[preds < .5] = 0
-        preds[preds >= .5] = 1
-        localAccuracy = np.mean(preds == Y_test)
-        accuracy.append(localAccuracy)
-        print("Finished run #" + str(i) + ". Accuracy = " + str(localAccuracy))
-        print("Time taken: " + str(datetime.now() - startTime))
-    if num_trials != 0:
-        print("The average accuracy is", sum(accuracy) / len(accuracy))
-
-    trainedModel = train_model(learning_rate, n_estimators, max_depth)
-    sav_string = f"lr_{learning_rate}num_{n_estimators}md_{max_depth}"
-    pickle.dump(trainedModel, open('models/' + sav_string, 'wb'))
-
-    # As an example, below prints out the probability that Michigan
-    # will beat Villanova (or vice versa)
-    find_winner('Michigan', 'Villanova', trainedModel)
-
-
-if __name__ == '__main__':
-    main()
+# As an example, below prints out the probability that Michigan
+# will beat Villanova (or vice versa)
+find_winner('Michigan', 'Villanova', trainedModel)
